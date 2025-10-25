@@ -24,14 +24,14 @@ static void SetFetchCycleCountFromAddressingType(CPU* cpu) {
 		// 2 fetch cycles
 		case ADDRESSING_MODE_IMMEDIATE:
 		case ADDRESSING_MODE_ZEROPAGE:
-		case ADDRESSING_MODE_ZEROPAGE_INDEXED_X: cpu->totalFetchCycles = 2; return;
+		case ADDRESSING_MODE_ZEROPAGE_INDEXED_X:
+		case ADDRESSING_MODE_INDEXED_X_INDIRECT:
+		case ADDRESSING_MODE_INDIRECT_INDEXED_Y: cpu->totalFetchCycles = 2; return;
 
 		// 3 fetch cycles
 		case ADDRESSING_MODE_ABSOLUTE:
 		case ADDRESSING_MODE_ABSOLUTE_INDEXED_X:
-		case ADDRESSING_MODE_ABSOLUTE_INDEXED_Y:
-		case ADDRESSING_MODE_INDEXED_X_INDIRECT:
-		case ADDRESSING_MODE_INDIRECT_INDEXED_Y: cpu->totalFetchCycles = 3; return;
+		case ADDRESSING_MODE_ABSOLUTE_INDEXED_Y: cpu->totalFetchCycles = 3; return;
 
 		default: cpu->totalFetchCycles = 0;
 	}
@@ -227,7 +227,8 @@ static void SetFetchCycleCount(CPU* cpu) {
 static void FetchOpcodeArg(CPU* cpu) { cpu->arg[cpu->fetchCycles - 1] = MEMORY_GET_BYTE(cpu->RAM, cpu->PC + cpu->fetchCycles); }
 
 static void ExecuteInstruction(CPU* cpu) {
-	(instructionTable[cpu->currentOpCode])(cpu, 0);
+	uint8_t bitPos = (cpu->currentOpCode >> 4) % 8;
+	(instructionTable[cpu->currentOpCode])(cpu, bitPos);
 	cpu->isOpcodeFetched = false;
 	if (!cpu->hasJumped)
 		cpu->PC += cpu->totalFetchCycles;

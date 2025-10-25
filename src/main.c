@@ -54,16 +54,14 @@ int main(int argc, char** argv) {
 	cpu.RAM = RAM;
 	bool shouldQuit = false;
 	while (!shouldQuit) {
-		char c = getchar();
+		printf("> ");
+		char c = '\0';
 		do {
-			if (c == '\n') printf("> ");
-
-			if (c != 'q' && c != 'n' && c != 'd' && c != 'z' && c != 's' && c != 'r' && c != '*') {
-				c = '\0';
-				c = getchar();
-			}
+			c = getchar();
+			if (c == '\n') c = '\0';
 		} while (c == '\0');
 		if (c == 'q') shouldQuit = true;
+		if (c == 's') CPURunCycle(&cpu);
 		if (c == 'n') {
 			do {
 				CPURunCycle(&cpu);
