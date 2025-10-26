@@ -112,7 +112,7 @@ void InstructionASL(CPU* cpu, uint8_t pad) {  // 0x06, 0x0A, 0x0E, 0x16, 0x1E
 	uint16_t dest;
 	uint8_t data;
 	uint16_t tmp;
-	if (cpu->currentOpCode == INSTRUCTION_SPECIAL_LSR_A) {
+	if (cpu->currentOpCode == INSTRUCTION_SPECIAL_ASL_A) {	// works
 		data = cpu->A;
 		tmp = data << 1;
 		cpu->A = tmp;
@@ -130,7 +130,7 @@ void InstructionLSR(CPU* cpu, uint8_t pad) {  // 0x46, 0x4A, 0x4E, 0x56, 0x5E
 	uint16_t dest;
 	uint8_t data;
 	uint16_t tmp;
-	if (cpu->currentOpCode == INSTRUCTION_SPECIAL_LSR_A) {
+	if (cpu->currentOpCode == INSTRUCTION_SPECIAL_LSR_A) {	// works
 		data = cpu->A;
 		tmp = data >> 1;
 		cpu->A = tmp;
@@ -197,29 +197,59 @@ void InstructionRMB(CPU* cpu, uint8_t bitPos) {	 // 0x07, 0x17, 0x27, 0x37, 0x47
 	MEMORY_SET_BYTE(cpu->RAM, address, MEMORY_GET_BYTE(cpu->RAM, address) & ~(1 << bitPos));
 }
 
+// works (including Decimal mode as far as i know)
 void InstructionADC(CPU* cpu, uint8_t pad) {  // 0x61, 0x65, 0x69, 0x6D, 0x71, 0x72, 0x75, 0x79, 0x7D
 	uint8_t val;
 	uint16_t tmp;
 	val = InstructionDecodeAddressingInput(cpu);
-	tmp = cpu->A + val;
+
 	if (cpu->F.flags.C) tmp++;
+	if (cpu->F.flags.D) {
+		uint8_t al;
+		al = ((cpu->A & 0xF) + (val & 0xF)) + cpu->F.flags.C;
+		if (al >= 0x0A) {
+			al = ((al + 0x06) & 0x0F) + 0x10;
+		}
+		tmp = (cpu->A & 0xF0) + (val & 0xF0) + al;
+		if (tmp >= 0xA0) {
+			tmp += 0x60;
+		}
+		cpu->F.flags.C = tmp >= 0x100;
+	} else {
+		tmp = cpu->A + val + cpu->F.flags.C;
+		cpu->F.flags.C = tmp >= 0x100;
+	}
 	cpu->F.flags.Z = ((uint8_t)tmp) == 0;
-	cpu->F.flags.C = tmp > 0xFF;
 	cpu->F.flags.N = tmp & 0x80;
 	cpu->F.flags.V = ((cpu->A & 0x80) == (val & 0x80)) && ((val & 0x80) != (tmp & 0x80));
 	cpu->A = tmp;
 }
+#include <stdio.h>
 void InstructionSBC(CPU* cpu, uint8_t pad) {  // 0xE1, 0xE5, 0xE9, 0xED, 0xF1, 0xF2, 0xF5, 0xF9, 0xFD
 	uint8_t val;
-	uint16_t tmp;
+	int16_t tmp;
 	val = InstructionDecodeAddressingInput(cpu);
 	tmp = cpu->A - val;
 	if (!cpu->F.flags.C) tmp--;
+	if (cpu->F.flags.D) {
+		int16_t al;
+		al = ((cpu->A & 0xF) - (val & 0xF)) + cpu->F.flags.C - 1;
+		if (al < 0) {
+			al = ((al - 0x06) & 0x0F) - 0x10;
+		}
+		tmp = (cpu->A & 0xF0) - (val & 0xF0) + al;
+		if (tmp < 0) {
+			tmp -= 0x60;
+		}
+		cpu->F.flags.C = !(tmp < 0);
+	} else {
+		tmp = cpu->A - val + cpu->F.flags.C - 1;
+		cpu->F.flags.C = !(tmp < 0);
+	}
 	cpu->F.flags.Z = ((uint8_t)tmp) == 0;
-	cpu->F.flags.C = tmp <= 0xFF;
 	cpu->F.flags.N = tmp & 0x80;
 	cpu->F.flags.V = ((cpu->A & 0x80) != (val & 0x80)) && ((cpu->A & 0x80) != (tmp & 0x80));
-	cpu->A = tmp;
+	cpu->A = (uint8_t)tmp;
 }
 
 void InstructionTAX(CPU* cpu, uint8_t pad) {  // 0xAA
