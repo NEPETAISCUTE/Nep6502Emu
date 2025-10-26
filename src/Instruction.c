@@ -554,6 +554,7 @@ void InstructionRTI(CPU* cpu, uint8_t pad) {  // 0x40
 	cpu->F.flags.pad = 1;  // ignore bit 5
 	cpu->PC = PopWord(cpu);
 	cpu->hasJumped = true;
+	cpu->isInInterrupt = false;
 }
 
 void InstructionCLV(CPU* cpu, uint8_t pad) {  // 0xB8

@@ -246,7 +246,7 @@ void CPURunCycle(CPU* cpu) {
 	switch (cpu->step) {
 		case STEP_FETCH:
 			if (!cpu->isOpcodeFetched) {
-				if (cpu->interruptSig.RESET || cpu->interruptSig.NMI || cpu->interruptSig.IRQ) {
+				if ((cpu->interruptSig.RESET || cpu->interruptSig.NMI || cpu->interruptSig.IRQ) && !cpu->isInInterrupt) {
 					ExecuteInterrupt(cpu);
 					return;
 				}
