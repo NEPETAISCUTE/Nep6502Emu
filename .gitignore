@@ -1,4 +1,5 @@
 nepEmuTest
-build/*
+build/*.o
+build/*.d
 .vscode/*
 .clang-format
