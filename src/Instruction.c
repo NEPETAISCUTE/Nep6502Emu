@@ -1,6 +1,7 @@
 #include "Instruction.h"
 
 #include "Memory.h"
+#include "Stack.h"
 
 static uint8_t InstructionDecodeAddressingInput(CPU* cpu) {
 	switch (DecodeInstructionB(cpu->currentOpCode)) {
@@ -28,31 +29,6 @@ static uint16_t InstructionDecodeAddressingDest(CPU* cpu) {
 		case ADDRESSING_MODE_INDIRECT_INDEXED_Y: return MEMORY_GET_WORD(cpu->RAM, *((uint8_t*)(cpu->arg))) + cpu->Y;
 		default: return 0;
 	}
-}
-
-static inline void PushByte(CPU* cpu, uint8_t data) {
-	MEMORY_SET_BYTE(cpu->RAM, cpu->S + 0x100, data);
-	cpu->S--;
-}
-
-static inline void PushWord(CPU* cpu, uint16_t data) {
-	MEMORY_SET_BYTE(cpu->RAM, cpu->S + 0x100, HIGHBYTE(data));
-	cpu->S--;
-	MEMORY_SET_BYTE(cpu->RAM, cpu->S + 0x100, LOWBYTE(data));
-	cpu->S--;
-}
-
-static inline uint8_t PopByte(CPU* cpu) {
-	cpu->S++;
-	return MEMORY_GET_BYTE(cpu->RAM, cpu->S + 0x100);
-}
-
-static inline uint16_t PopWord(CPU* cpu) {
-	cpu->S++;
-	uint8_t low = MEMORY_GET_BYTE(cpu->RAM, cpu->S + 0x100);
-	cpu->S++;
-	uint8_t high = MEMORY_GET_BYTE(cpu->RAM, cpu->S + 0x100);
-	return WORDCAT(high, low);
 }
 
 void InstructionNOP(CPU* cpu, uint8_t pad) {  // 0x02, 0x03, 0x0B, 0x13, 0x1B, 0x22, 0x23, 0x2B, 0x33, 0x3B, 0x42, 0x43, 0x44, 0x4B, 0x53, 0x54,
