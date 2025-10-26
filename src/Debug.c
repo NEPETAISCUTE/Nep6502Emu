@@ -511,4 +511,24 @@ void PutCPUState(CPU* cpu) {
 	else
 		printf("-");
 	printf("\n");
+	printf("I=");
+	if (cpu->interruptSig.RESET)
+		printf("R");
+	else
+		printf("-");
+	if (cpu->interruptSig.NMI)
+		printf("N");
+	else
+		printf("-");
+	if (cpu->interruptSig.IRQ)
+		printf("I");
+	else
+		printf("-");
+	printf("\n");
+
+	if (cpu->resetHeld)
+		printf("R is held");
+	else
+		printf("R is not held");
+	printf("\n");
 }
