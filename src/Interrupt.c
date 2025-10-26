@@ -26,10 +26,11 @@ void ExecuteInterrupt(CPU* cpu) {
 	if (cpu->interruptSig.RESET) {
 		cpu->PC = MEMORY_GET_WORD(cpu->RAM, VECTOR_RESET);
 		cpu->waitingForReset = false;
+		cpu->isInNMI = false;
 		cpu->interruptSig = (InterruptSig){0};
 	} else if (cpu->interruptSig.NMI) {
 		cpu->PC = MEMORY_GET_WORD(cpu->RAM, VECTOR_NMI);
-		cpu->isInInterrupt = true;
+		cpu->isInNMI = true;
 		cpu->interruptSig.NMI = false;
 	} else {
 		cpu->PC = MEMORY_GET_WORD(cpu->RAM, VECTOR_IRQ);

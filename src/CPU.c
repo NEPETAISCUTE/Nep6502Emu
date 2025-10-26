@@ -14,7 +14,7 @@ void CPUInit(CPU* cpu) {
 	cpu->waitingForInterrupt = false;
 	cpu->waitingForReset = false;
 	cpu->resetHeld = false;
-	cpu->isInInterrupt = false;
+	cpu->isInNMI = false;
 	cpu->interruptSig.IRQ = false;
 	cpu->interruptSig.NMI = false;
 	cpu->interruptSig.RESET = false;
@@ -246,7 +246,7 @@ void CPURunCycle(CPU* cpu) {
 	switch (cpu->step) {
 		case STEP_FETCH:
 			if (!cpu->isOpcodeFetched) {
-				if ((cpu->interruptSig.RESET || cpu->interruptSig.NMI || cpu->interruptSig.IRQ) && !cpu->isInInterrupt) {
+				if ((cpu->interruptSig.RESET || cpu->interruptSig.NMI || cpu->interruptSig.IRQ) && !cpu->isInNMI) {
 					ExecuteInterrupt(cpu);
 					return;
 				}
