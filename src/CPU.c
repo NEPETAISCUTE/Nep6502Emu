@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "Instruction.h"
+#include "Interrupt.h"
 #include "Memory.h"
 
 void CPUInit(CPU* cpu) {
@@ -13,6 +14,7 @@ void CPUInit(CPU* cpu) {
 	cpu->waitingForInterrupt = false;
 	cpu->waitingForReset = false;
 	cpu->resetHeld = false;
+	cpu->isInInterrupt = false;
 	cpu->interruptSig.IRQ = false;
 	cpu->interruptSig.NMI = false;
 	cpu->interruptSig.RESET = false;
@@ -240,9 +242,14 @@ static void ExecuteInstruction(CPU* cpu) {
 }
 
 void CPURunCycle(CPU* cpu) {
+	if (cpu->resetHeld) return;
 	switch (cpu->step) {
 		case STEP_FETCH:
 			if (!cpu->isOpcodeFetched) {
+				if (cpu->interruptSig.RESET || cpu->interruptSig.NMI || cpu->interruptSig.IRQ) {
+					ExecuteInterrupt(cpu);
+					return;
+				}
 				cpu->currentOpCode = MEMORY_GET_BYTE(cpu->RAM, cpu->PC);
 				cpu->isOpcodeFetched = true;
 				SetFetchCycleCount(cpu);

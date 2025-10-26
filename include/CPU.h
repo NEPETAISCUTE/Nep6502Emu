@@ -50,6 +50,7 @@ typedef struct CPU {
 	bool resetHeld;
 
 	bool hasJumped;
+	bool isInInterrupt;
 	bool waitingForInterrupt;
 	bool waitingForReset;
 
