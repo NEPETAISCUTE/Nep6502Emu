@@ -1,5 +1,6 @@
 #include "Instruction.h"
 
+#include "Interrupt.h"
 #include "Memory.h"
 #include "Stack.h"
 
@@ -37,6 +38,9 @@ void InstructionNOP(CPU* cpu, uint8_t pad) {  // 0x02, 0x03, 0x0B, 0x13, 0x1B, 0
 }
 
 void InstructionBRK(CPU* cpu, uint8_t pad) {  // 0x00
+	PushWord(cpu, cpu->PC);
+	PushByte(cpu, cpu->F.reg | 0x10);
+	cpu->PC = MEMORY_GET_WORD(cpu->RAM, VECTOR_IRQ);
 }
 
 void InstructionBIT(CPU* cpu, uint8_t pad) {  // 0x24, 0x2C, 0x34, 0x3C, 0x89
