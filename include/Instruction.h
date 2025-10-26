@@ -27,6 +27,11 @@ typedef enum AdressingMode {
 	ADDRESSING_MODE_ZEROPAGE_INDEXED_X = 5,
 	ADDRESSING_MODE_ABSOLUTE_INDEXED_Y = 6,
 	ADDRESSING_MODE_ABSOLUTE_INDEXED_X = 7,
+	ADDRESSING_MODE_RELATIVE = 8,					   // special addressing mode only used by branch instructions
+	ADDRESSING_MODE_INDIRECT = 9,					   // special addressing mode only used by JMP
+	ADDRESSING_MODE_IMPLIED = 10,					   // no addressing at all, used for flag bit instructions and the likes
+	ADDRESSING_MODE_ABSOLUTE_INDIRECT_ZEROPAGE = 11,   // special addressing mode that has no way of being properly decoded
+	ADDRESSING_MODE_X_INDEXED_INDIRECT_ABSOLUTE = 12,  // wtf
 } AddressingMode;
 
 #define DecodeInstructionA(opcode) (InstructionAStandard)(((opcode) & 0b11100000) >> 5)
