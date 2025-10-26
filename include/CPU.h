@@ -57,6 +57,7 @@ typedef struct CPU {
 	InterruptSig interruptSig;
 } CPU;
 
+void CPUInit(CPU* cpu);
 void CPURunCycle(CPU* cpu);
 void CPUPutState(CPU* cpu);
 

@@ -1,6 +1,8 @@
 #include <stdio.h>
 
 #include "CPU.h"
+#include "Debug.h"
+#include "Interrupt.h"
 
 bool dumpFileIntoRAM(const char* filename, uint16_t address, uint8_t* RAM) {
 	FILE* f = fopen(filename, "rb");
@@ -48,9 +50,9 @@ int main(int argc, char** argv) {
 	if (argc > 1) dumpFileIntoRAM(argv[1], 0x8000, RAM);
 
 	CPU cpu;
-	cpu.PC = 0x8000;
+	CPUInit(&cpu);
+	TriggerInterrupt(&cpu, INTERRUPT_RESET);
 
-	void CPUInit(CPU * cpu);
 	cpu.RAM = RAM;
 	bool shouldQuit = false;
 	while (!shouldQuit) {
@@ -68,7 +70,7 @@ int main(int argc, char** argv) {
 			} while (cpu.isOpcodeFetched);
 		}
 		if (c == 'd') {
-			CPUPutState(&cpu);
+			PutCPUState(&cpu);
 		}
 		if (c == 'z') {
 			for (size_t j = 0; j < 0x10; j++) {
@@ -97,6 +99,15 @@ int main(int argc, char** argv) {
 			uint16_t readAddr;
 			scanf("%04X", &readAddr);
 			printf("0x%02X\n", RAM[readAddr]);
+		}
+		if (c == 'R') {
+			TriggerInterrupt(&cpu, INTERRUPT_RESET);
+		}
+		if (c == 'N') {
+			TriggerInterrupt(&cpu, INTERRUPT_NMI);
+		}
+		if (c == 'I') {
+			TriggerInterrupt(&cpu, INTERRUPT_IRQ);
 		}
 	}
 	return 0;
