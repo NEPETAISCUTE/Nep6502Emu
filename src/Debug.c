@@ -14,26 +14,29 @@ static uint8_t addressingModeSize[] = {
 	1,	// ADDRESSING_MODE_ZEROPAGE_INDEXED_X = 5,
 	2,	// ADDRESSING_MODE_ABSOLUTE_INDEXED_Y = 6,
 	2,	// ADDRESSING_MODE_ABSOLUTE_INDEXED_X = 7,
-	1,	// ADDRESSING_MODE_RELATIVE = 8,					   // special addressing mode only used by branch instructions
-	2,	// ADDRESSING_MODE_INDIRECT = 9,					   // special addressing mode only used by JMP
-	0,	// ADDRESSING_MODE_IMPLIED = 10,					   // no addressing at all, used for flag bit instructions and the likes
-	1,	// ADDRESSING_MODE_ABSOLUTE_INDIRECT_ZEROPAGE = 11,   // special addressing mode that has no way of being properly decoded
-	2,	// ADDRESSING_MODE_X_INDEXED_INDIRECT_ABSOLUTE = 12,  // wtf
+	1,	// ADDRESSING_MODE_ZEROPAGE_INDEXED_Y = 8, 				// used only for ldx and stx
+	1,	// ADDRESSING_MODE_RELATIVE = 9,					   // special addressing mode only used by branch instructions
+	2,	// ADDRESSING_MODE_INDIRECT = 10,					   // special addressing mode only used by JMP
+	0,	// ADDRESSING_MODE_IMPLIED = 11,					   // no addressing at all, used for flag bit instructions and the likes
+	1,	// ADDRESSING_MODE_ABSOLUTE_INDIRECT_ZEROPAGE = 12,   // special addressing mode that has no way of being properly decoded
+	2,	// ADDRESSING_MODE_X_INDEXED_INDIRECT_ABSOLUTE = 13,  // wtf
 };
 
 static void PutInstructionSub(CPU* cpu, const char* instructionName, AddressingMode addressingMode, uint16_t addr) {
 	printf("%s ", instructionName);
 	switch (addressingMode) {
-		case ADDRESSING_MODE_IMMEDIATE: printf("#$%02X\n", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
+		case ADDRESSING_MODE_IMMEDIATE: printf("#$%02X", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
 		case ADDRESSING_MODE_ABSOLUTE: printf("$%04X\n", MEMORY_GET_WORD(cpu->RAM, addr + 1)); break;
-		case ADDRESSING_MODE_ABSOLUTE_INDEXED_X: printf("$%04X,x\n", MEMORY_GET_WORD(cpu->RAM, addr + 1)); break;
-		case ADDRESSING_MODE_ABSOLUTE_INDEXED_Y: printf("$%04X,y\n", MEMORY_GET_WORD(cpu->RAM, addr + 1)); break;
+		case ADDRESSING_MODE_ABSOLUTE_INDEXED_X: printf("$%04X,x", MEMORY_GET_WORD(cpu->RAM, addr + 1)); break;
+		case ADDRESSING_MODE_ABSOLUTE_INDEXED_Y: printf("$%04X,y", MEMORY_GET_WORD(cpu->RAM, addr + 1)); break;
 		case ADDRESSING_MODE_INDIRECT: printf("($%04X)", MEMORY_GET_WORD(cpu->RAM, addr + 1)); break;
-		case ADDRESSING_MODE_ABSOLUTE_INDIRECT_ZEROPAGE: printf("(%02X)", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
+		case ADDRESSING_MODE_ABSOLUTE_INDIRECT_ZEROPAGE: printf("($%02X)", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
 		case ADDRESSING_MODE_INDEXED_X_INDIRECT: printf("($%02X,x)", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
 		case ADDRESSING_MODE_INDIRECT_INDEXED_Y: printf("($%02X),y", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
 		case ADDRESSING_MODE_RELATIVE: printf("%d", (int8_t)(MEMORY_GET_BYTE(cpu->RAM, addr + 1) + 2)); break;
 		case ADDRESSING_MODE_ZEROPAGE: printf("$%02X", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
+		case ADDRESSING_MODE_ZEROPAGE_INDEXED_X: printf("$%02X,x", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
+		case ADDRESSING_MODE_ZEROPAGE_INDEXED_Y: printf("$%02X,y", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
 		case ADDRESSING_MODE_X_INDEXED_INDIRECT_ABSOLUTE: printf("($%04X,x)", MEMORY_GET_WORD(cpu->RAM, addr + 1)); break;
 		default: break;
 	}
@@ -402,10 +405,10 @@ uint8_t PutInstruction(CPU* cpu, uint16_t addr) {
 	uint8_t instructionSelector = DecodeInstructionC(opcode);
 
 	switch (instructionClass) {
-		case INSTRUCTIONA_ORA_ASL:
-			if (instructionSelector == 0)
+		case INSTRUCTIONA__ORA_ASL:
+			if (instructionSelector == 1)
 				PutInstructionSub(cpu, "ORA", addressingMode, addr);
-			else if (instructionSelector == 1)
+			else if (instructionSelector == 2)
 				PutInstructionSub(cpu, "ASL", addressingMode, addr);
 			break;
 		case INSTRUCTIONA_BIT_AND_ROL:
@@ -416,16 +419,16 @@ uint8_t PutInstruction(CPU* cpu, uint16_t addr) {
 			else if (instructionSelector == 2)
 				PutInstructionSub(cpu, "ROL", addressingMode, addr);
 			break;
-		case INSTRUCTIONA_EOR_LSR:
-			if (instructionSelector == 0)
+		case INSTRUCTIONA__EOR_LSR:
+			if (instructionSelector == 1)
 				PutInstructionSub(cpu, "EOR", addressingMode, addr);
-			else if (instructionSelector == 1)
+			else if (instructionSelector == 2)
 				PutInstructionSub(cpu, "LSR", addressingMode, addr);
 			break;
-		case INSTRUCTIONA_ADC_ROR:
-			if (instructionSelector == 0)
+		case INSTRUCTIONA__ADC_ROR:
+			if (instructionSelector == 1)
 				PutInstructionSub(cpu, "ADC", addressingMode, addr);
-			else if (instructionSelector == 1)
+			else if (instructionSelector == 2)
 				PutInstructionSub(cpu, "ROR", addressingMode, addr);
 			break;
 		case INSTRUCTIONA_STY_STA_STX:
@@ -433,16 +436,20 @@ uint8_t PutInstruction(CPU* cpu, uint16_t addr) {
 				PutInstructionSub(cpu, "STY", addressingMode, addr);
 			else if (instructionSelector == 1)
 				PutInstructionSub(cpu, "STA", addressingMode, addr);
-			else if (instructionSelector == 2)
+			else if (instructionSelector == 2) {
+				if (addressingMode == ADDRESSING_MODE_ZEROPAGE_INDEXED_X) addressingMode = ADDRESSING_MODE_ZEROPAGE_INDEXED_Y;
 				PutInstructionSub(cpu, "STX", addressingMode, addr);
+			}
 			break;
 		case INSTRUCTIONA_LDY_LDA_LDX:
 			if (instructionSelector == 0)
 				PutInstructionSub(cpu, "LDY", addressingMode, addr);
 			else if (instructionSelector == 1)
 				PutInstructionSub(cpu, "LDA", addressingMode, addr);
-			else if (instructionSelector == 2)
+			else if (instructionSelector == 2) {
+				if (addressingMode == ADDRESSING_MODE_ZEROPAGE_INDEXED_X) addressingMode = ADDRESSING_MODE_ZEROPAGE_INDEXED_Y;
 				PutInstructionSub(cpu, "LDX", addressingMode, addr);
+			}
 			break;
 		case INSTRUCTIONA_CPY_CMP_DEC:
 			if (instructionSelector == 0)
@@ -472,6 +479,7 @@ void PutCPUState(CPU* cpu) {
 	printf("PC=$%04X\n", cpu->PC);
 	printf("(PC)=");
 	PutInstruction(cpu, cpu->PC);
+	printf("\n");
 	printf("P=");
 
 	if (cpu->F.flags.N)
