@@ -8,10 +8,10 @@
 typedef uint8_t OpCode;
 
 typedef enum InstructionAStandard {
-	INSTRUCTIONA_ORA_ASL = 0,
+	INSTRUCTIONA__ORA_ASL = 0,
 	INSTRUCTIONA_BIT_AND_ROL = 1,
-	INSTRUCTIONA_EOR_LSR = 2,
-	INSTRUCTIONA_ADC_ROR = 3,
+	INSTRUCTIONA__EOR_LSR = 2,
+	INSTRUCTIONA__ADC_ROR = 3,
 	INSTRUCTIONA_STY_STA_STX = 4,
 	INSTRUCTIONA_LDY_LDA_LDX = 5,
 	INSTRUCTIONA_CPY_CMP_DEC = 6,
@@ -27,11 +27,12 @@ typedef enum AdressingMode {
 	ADDRESSING_MODE_ZEROPAGE_INDEXED_X = 5,
 	ADDRESSING_MODE_ABSOLUTE_INDEXED_Y = 6,
 	ADDRESSING_MODE_ABSOLUTE_INDEXED_X = 7,
-	ADDRESSING_MODE_RELATIVE = 8,					   // special addressing mode only used by branch instructions
-	ADDRESSING_MODE_INDIRECT = 9,					   // special addressing mode only used by JMP
-	ADDRESSING_MODE_IMPLIED = 10,					   // no addressing at all, used for flag bit instructions and the likes
-	ADDRESSING_MODE_ABSOLUTE_INDIRECT_ZEROPAGE = 11,   // special addressing mode that has no way of being properly decoded
-	ADDRESSING_MODE_X_INDEXED_INDIRECT_ABSOLUTE = 12,  // wtf
+	ADDRESSING_MODE_ZEROPAGE_INDEXED_Y = 8,
+	ADDRESSING_MODE_RELATIVE = 9,					   // special addressing mode only used by branch instructions
+	ADDRESSING_MODE_INDIRECT = 10,					   // special addressing mode only used by JMP
+	ADDRESSING_MODE_IMPLIED = 11,					   // no addressing at all, used for flag bit instructions and the likes
+	ADDRESSING_MODE_ABSOLUTE_INDIRECT_ZEROPAGE = 12,   // special addressing mode that has no way of being properly decoded
+	ADDRESSING_MODE_X_INDEXED_INDIRECT_ABSOLUTE = 13,  // wtf
 } AddressingMode;
 
 #define DecodeInstructionA(opcode) (InstructionAStandard)(((opcode) & 0b11100000) >> 5)
