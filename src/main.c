@@ -91,9 +91,9 @@ int main(int argc, char** argv) {
 		if (c == 'r') {
 			uint16_t breakAddr;
 			scanf("%04X", &breakAddr);
-			while (cpu.PC != breakAddr) {
+			do {
 				CPURunCycle(&cpu);
-			}
+			} while (cpu.PC != breakAddr || cpu.isOpcodeFetched);
 		}
 		if (c == '*') {
 			uint16_t readAddr;
