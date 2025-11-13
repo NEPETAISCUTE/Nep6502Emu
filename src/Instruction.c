@@ -8,13 +8,15 @@ static uint8_t InstructionDecodeAddressingInput(CPU* cpu) {
 	switch (DecodeInstructionB(cpu->currentOpCode)) {
 		case ADDRESSING_MODE_IMMEDIATE: return *((uint8_t*)cpu->arg);
 		case ADDRESSING_MODE_ZEROPAGE: return MEMORY_GET_BYTE(cpu->RAM, *((uint8_t*)cpu->arg));
-		case ADDRESSING_MODE_ZEROPAGE_INDEXED_X: return MEMORY_GET_BYTE(cpu->RAM, *((uint8_t*)(cpu->arg)) + cpu->X);
+		case ADDRESSING_MODE_ZEROPAGE_INDEXED_X: return MEMORY_GET_BYTE(cpu->RAM, (*((uint8_t*)(cpu->arg))) + cpu->X);
 		case ADDRESSING_MODE_ABSOLUTE: return MEMORY_GET_BYTE(cpu->RAM, *((uint16_t*)(cpu->arg)));
 		case ADDRESSING_MODE_ABSOLUTE_INDEXED_X: return MEMORY_GET_BYTE(cpu->RAM, *((uint16_t*)(cpu->arg)) + cpu->X);
 		case ADDRESSING_MODE_ABSOLUTE_INDEXED_Y: return MEMORY_GET_BYTE(cpu->RAM, *((uint16_t*)(cpu->arg)) + cpu->Y);
-		case ADDRESSING_MODE_INDEXED_X_INDIRECT: return MEMORY_GET_BYTE(cpu->RAM, (uint8_t)(*((uint8_t*)cpu->arg)) + cpu->X);  // works
+		case ADDRESSING_MODE_INDEXED_X_INDIRECT:
+			return MEMORY_GET_BYTE(cpu->RAM, MEMORY_GET_WORD(cpu->RAM, (uint8_t)(*((uint8_t*)cpu->arg)) + cpu->X));	 // works
 		case ADDRESSING_MODE_INDIRECT_INDEXED_Y:
 			return MEMORY_GET_BYTE(cpu->RAM, MEMORY_GET_WORD(cpu->RAM, *((uint8_t*)(cpu->arg))) + cpu->Y);	// works
+		default: return 0;																					// should never happen
 	}
 	return 0;
 }
@@ -38,9 +40,10 @@ void InstructionNOP(CPU* cpu, uint8_t pad) {  // 0x02, 0x03, 0x0B, 0x13, 0x1B, 0
 }
 
 void InstructionBRK(CPU* cpu, uint8_t pad) {  // 0x00
-	PushWord(cpu, cpu->PC);
+	PushWord(cpu, cpu->PC + 2);
 	PushByte(cpu, cpu->F.reg | 0x10);
 	cpu->PC = MEMORY_GET_WORD(cpu->RAM, VECTOR_IRQ);
+	cpu->hasJumped = true;
 }
 
 void InstructionBIT(CPU* cpu, uint8_t pad) {  // 0x24, 0x2C, 0x34, 0x3C, 0x89
@@ -204,7 +207,6 @@ void InstructionADC(CPU* cpu, uint8_t pad) {  // 0x61, 0x65, 0x69, 0x6D, 0x71, 0
 	cpu->F.flags.V = ((cpu->A & 0x80) == (val & 0x80)) && ((val & 0x80) != (tmp & 0x80));
 	cpu->A = tmp;
 }
-#include <stdio.h>
 void InstructionSBC(CPU* cpu, uint8_t pad) {  // 0xE1, 0xE5, 0xE9, 0xED, 0xF1, 0xF2, 0xF5, 0xF9, 0xFD
 	uint8_t val;
 	int16_t tmp;
@@ -309,10 +311,11 @@ void InstructionSTZ(CPU* cpu, uint8_t pad) {  // 0x64, 0x74, 0x9C, 0x9E
 }
 void InstructionSTA(CPU* cpu, uint8_t pad) {  // 0x81, 0x85, 0x8D, 0x91, 0x92, 0x95, 0x9D, 0x99
 	uint16_t dest;
-	if (cpu->currentOpCode == INSTRUCTION_SPECIAL_STA_PTR_ZPG)
+	if (cpu->currentOpCode == INSTRUCTION_SPECIAL_STA_PTR_ZPG) {
 		dest = MEMORY_GET_WORD(cpu->RAM, *((uint8_t*)cpu->arg));
-	else
+	} else {
 		dest = InstructionDecodeAddressingDest(cpu);
+	}
 	MEMORY_SET_BYTE(cpu->RAM, dest, cpu->A);
 }
 void InstructionSTX(CPU* cpu, uint8_t pad) {  // 0x86, 0x8E, 0x96
@@ -454,7 +457,6 @@ void InstructionJMP(CPU* cpu, uint8_t pad) {  // 0x4C, 0x6C, 0x7C
 	cpu->PC = val;
 	cpu->hasJumped = true;
 }
-#include <stdio.h>
 void InstructionBRA(CPU* cpu, uint8_t pad) {  // 0x80
 	int8_t offset = *((int8_t*)cpu->arg);
 	cpu->PC += 2;
@@ -655,7 +657,7 @@ const InstructionFunc instructionTable[256] = {
 	InstructionDEY, InstructionBIT, InstructionTXA, InstructionNOP, InstructionSTY, InstructionSTA, InstructionSTX, InstructionBBS,
 
 	// 0x9X
-	InstructionBCC, InstructionSTA, InstructionNOP, InstructionNOP, InstructionSTY, InstructionSTA, InstructionSTX, InstructionSMB,
+	InstructionBCC, InstructionSTA, InstructionSTA, InstructionNOP, InstructionSTY, InstructionSTA, InstructionSTX, InstructionSMB,
 	InstructionTYA, InstructionSTA, InstructionTXS, InstructionNOP, InstructionSTZ, InstructionSTA, InstructionSTZ, InstructionBBS,
 
 	// 0xAX
