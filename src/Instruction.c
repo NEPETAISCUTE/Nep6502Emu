@@ -198,23 +198,32 @@ void InstructionADC(CPU* cpu, uint8_t pad) {  // 0x61, 0x65, 0x69, 0x6D, 0x71, 0
 			tmp += 0x60;
 		}
 		cpu->F.flags.C = tmp >= 0x100;
+		cpu->F.flags.V = tmp < -128 || tmp > 127;
+
+		// for original 6502
+		// cpu->F.flags.N = tmp & 0x80;
+
+		// for WDC65c02
+		cpu->F.flags.N = tmp & 0x80;
 	} else {
 		tmp = cpu->A + val + cpu->F.flags.C;
 		cpu->F.flags.C = tmp >= 0x100;
+		cpu->F.flags.N = tmp & 0x80;
+		cpu->F.flags.V = ((cpu->A & 0x80) == (val & 0x80)) && ((val & 0x80) != (tmp & 0x80));
 	}
 	cpu->F.flags.Z = ((uint8_t)tmp) == 0;
-	cpu->F.flags.N = tmp & 0x80;
-	cpu->F.flags.V = ((cpu->A & 0x80) == (val & 0x80)) && ((val & 0x80) != (tmp & 0x80));
 	cpu->A = tmp;
 }
 void InstructionSBC(CPU* cpu, uint8_t pad) {  // 0xE1, 0xE5, 0xE9, 0xED, 0xF1, 0xF2, 0xF5, 0xF9, 0xFD
 	uint8_t val;
+	uint8_t val_inv;
 	int16_t tmp;
 	val = InstructionDecodeAddressingInput(cpu);
+	val_inv = ~(val);
 	tmp = cpu->A - val;
 	if (!cpu->F.flags.C) tmp--;
 	if (cpu->F.flags.D) {
-		int16_t al;
+		int8_t al;
 		al = ((cpu->A & 0xF) - (val & 0xF)) + cpu->F.flags.C - 1;
 		if (al < 0) {
 			al = ((al - 0x06) & 0x0F) - 0x10;
@@ -224,13 +233,20 @@ void InstructionSBC(CPU* cpu, uint8_t pad) {  // 0xE1, 0xE5, 0xE9, 0xED, 0xF1, 0
 			tmp -= 0x60;
 		}
 		cpu->F.flags.C = !(tmp < 0);
+		cpu->F.flags.V = ((cpu->A & 0x80) == (val_inv & 0x80)) && ((cpu->A & 0x80) != (tmp & 0x80));
+
+		// for original 6502
+		// cpu->F.flags.N = tmp & 0x80;
+
+		// for WDC65c02
+		cpu->F.flags.N = tmp & 0x80;
 	} else {
 		tmp = cpu->A - val + cpu->F.flags.C - 1;
 		cpu->F.flags.C = !(tmp < 0);
+		cpu->F.flags.N = tmp & 0x80;
+		cpu->F.flags.V = ((cpu->A & 0x80) == (val_inv & 0x80)) && ((cpu->A & 0x80) != (tmp & 0x80));
 	}
 	cpu->F.flags.Z = ((uint8_t)tmp) == 0;
-	cpu->F.flags.N = tmp & 0x80;
-	cpu->F.flags.V = ((cpu->A & 0x80) != (val & 0x80)) && ((cpu->A & 0x80) != (tmp & 0x80));
 	cpu->A = (uint8_t)tmp;
 }
 
