@@ -6,7 +6,11 @@
 #include "Interrupt.h"
 #include "Memory.h"
 
-void CPUInit(CPU* cpu) {
+void CPUInit(CPU* cpu, CPUOnReadcb readMem, CPUOnWritecb writeMem) {
+	// setting up callbacks
+	cpu->readMem = readMem;
+	cpu->writeMem = writeMem;
+
 	cpu->fetchCycles = 0;
 	cpu->totalFetchCycles = 0;
 	cpu->step = STEP_FETCH;

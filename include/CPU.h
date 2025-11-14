@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+typedef uint8_t (*CPUOnReadcb)(uint16_t address);
+typedef void (*CPUOnWritecb)(uint16_t address, uint8_t data);
+
 typedef enum CycleStep {
 	STEP_FETCH = 0,
 	STEP_EXECUTE = 1,
@@ -30,6 +33,9 @@ typedef struct InterruptSig {
 } InterruptSig;
 
 typedef struct CPU {
+	CPUOnReadcb readMem;
+	CPUOnWritecb writeMem;
+
 	uint8_t A;
 	uint8_t X;
 	uint8_t Y;
@@ -57,7 +63,7 @@ typedef struct CPU {
 	InterruptSig interruptSig;
 } CPU;
 
-void CPUInit(CPU* cpu);
+void CPUInit(CPU* cpu, CPUOnReadcb readMem, CPUOnWritecb writeMem);
 void CPURunCycle(CPU* cpu);
 void CPUPutState(CPU* cpu);
 
