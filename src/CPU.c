@@ -230,7 +230,7 @@ static void SetFetchCycleCount(CPU* cpu) {
 	}
 }
 
-static void FetchOpcodeArg(CPU* cpu) { cpu->arg[cpu->fetchCycles - 1] = MEMORY_GET_BYTE(cpu->RAM, cpu->PC + cpu->fetchCycles); }
+static void FetchOpcodeArg(CPU* cpu) { cpu->arg[cpu->fetchCycles - 1] = MEMORY_GET_BYTE(cpu, cpu->PC + cpu->fetchCycles); }
 
 static void ExecuteInstruction(CPU* cpu) {
 	uint8_t bitPos = (cpu->currentOpCode >> 4) % 8;
@@ -254,7 +254,7 @@ void CPURunCycle(CPU* cpu) {
 					ExecuteInterrupt(cpu);
 					return;
 				}
-				cpu->currentOpCode = MEMORY_GET_BYTE(cpu->RAM, cpu->PC);
+				cpu->currentOpCode = ((uint8_t)((cpu)->readMem(cpu->PC)));
 				cpu->isOpcodeFetched = true;
 				SetFetchCycleCount(cpu);
 			} else {

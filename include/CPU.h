@@ -43,8 +43,6 @@ typedef struct CPU {
 	uint16_t PC;
 	Flags F;
 
-	uint8_t* RAM;
-
 	CycleStep step;
 
 	bool isOpcodeFetched;

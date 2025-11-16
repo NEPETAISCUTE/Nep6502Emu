@@ -7,16 +7,15 @@
 static uint8_t InstructionDecodeAddressingInput(CPU* cpu) {
 	switch (DecodeInstructionB(cpu->currentOpCode)) {
 		case ADDRESSING_MODE_IMMEDIATE: return *((uint8_t*)cpu->arg);
-		case ADDRESSING_MODE_ZEROPAGE: return MEMORY_GET_BYTE(cpu->RAM, *((uint8_t*)cpu->arg));
-		case ADDRESSING_MODE_ZEROPAGE_INDEXED_X: return MEMORY_GET_BYTE(cpu->RAM, (*((uint8_t*)(cpu->arg))) + cpu->X);
-		case ADDRESSING_MODE_ABSOLUTE: return MEMORY_GET_BYTE(cpu->RAM, *((uint16_t*)(cpu->arg)));
-		case ADDRESSING_MODE_ABSOLUTE_INDEXED_X: return MEMORY_GET_BYTE(cpu->RAM, *((uint16_t*)(cpu->arg)) + cpu->X);
-		case ADDRESSING_MODE_ABSOLUTE_INDEXED_Y: return MEMORY_GET_BYTE(cpu->RAM, *((uint16_t*)(cpu->arg)) + cpu->Y);
+		case ADDRESSING_MODE_ZEROPAGE: return MEMORY_GET_BYTE(cpu, *((uint8_t*)cpu->arg));
+		case ADDRESSING_MODE_ZEROPAGE_INDEXED_X: return MEMORY_GET_BYTE(cpu, (*((uint8_t*)(cpu->arg))) + cpu->X);
+		case ADDRESSING_MODE_ABSOLUTE: return MEMORY_GET_BYTE(cpu, *((uint16_t*)(cpu->arg)));
+		case ADDRESSING_MODE_ABSOLUTE_INDEXED_X: return MEMORY_GET_BYTE(cpu, *((uint16_t*)(cpu->arg)) + cpu->X);
+		case ADDRESSING_MODE_ABSOLUTE_INDEXED_Y: return MEMORY_GET_BYTE(cpu, *((uint16_t*)(cpu->arg)) + cpu->Y);
 		case ADDRESSING_MODE_INDEXED_X_INDIRECT:
-			return MEMORY_GET_BYTE(cpu->RAM, MEMORY_GET_WORD(cpu->RAM, (uint8_t)(*((uint8_t*)cpu->arg)) + cpu->X));	 // works
-		case ADDRESSING_MODE_INDIRECT_INDEXED_Y:
-			return MEMORY_GET_BYTE(cpu->RAM, MEMORY_GET_WORD(cpu->RAM, *((uint8_t*)(cpu->arg))) + cpu->Y);	// works
-		default: return 0;																					// should never happen
+			return MEMORY_GET_BYTE(cpu, MEMORY_GET_WORD(cpu, (uint8_t)(*((uint8_t*)cpu->arg)) + cpu->X));							   // works
+		case ADDRESSING_MODE_INDIRECT_INDEXED_Y: return MEMORY_GET_BYTE(cpu, MEMORY_GET_WORD(cpu, *((uint8_t*)(cpu->arg))) + cpu->Y);  // works
+		default: return 0;	// should never happen
 	}
 	return 0;
 }
@@ -28,8 +27,8 @@ static uint16_t InstructionDecodeAddressingDest(CPU* cpu) {
 		case ADDRESSING_MODE_ABSOLUTE: return *((uint16_t*)(cpu->arg));
 		case ADDRESSING_MODE_ABSOLUTE_INDEXED_X: return *((uint16_t*)(cpu->arg)) + cpu->X;
 		case ADDRESSING_MODE_ABSOLUTE_INDEXED_Y: return *((uint16_t*)(cpu->arg)) + cpu->Y;
-		case ADDRESSING_MODE_INDEXED_X_INDIRECT: return MEMORY_GET_WORD(cpu->RAM, (uint8_t)(*((uint8_t*)cpu->arg)) + cpu->X);
-		case ADDRESSING_MODE_INDIRECT_INDEXED_Y: return MEMORY_GET_WORD(cpu->RAM, *((uint8_t*)(cpu->arg))) + cpu->Y;
+		case ADDRESSING_MODE_INDEXED_X_INDIRECT: return MEMORY_GET_WORD(cpu, (uint8_t)(*((uint8_t*)cpu->arg)) + cpu->X);
+		case ADDRESSING_MODE_INDIRECT_INDEXED_Y: return MEMORY_GET_WORD(cpu, *((uint8_t*)(cpu->arg))) + cpu->Y;
 		default: return 0;
 	}
 }
@@ -42,7 +41,7 @@ void InstructionNOP(CPU* cpu, uint8_t pad) {  // 0x02, 0x03, 0x0B, 0x13, 0x1B, 0
 void InstructionBRK(CPU* cpu, uint8_t pad) {  // 0x00
 	PushWord(cpu, cpu->PC + 2);
 	PushByte(cpu, cpu->F.reg | 0x10);
-	cpu->PC = MEMORY_GET_WORD(cpu->RAM, VECTOR_IRQ);
+	cpu->PC = MEMORY_GET_WORD(cpu, VECTOR_IRQ);
 	cpu->hasJumped = true;
 }
 
@@ -51,8 +50,8 @@ void InstructionBIT(CPU* cpu, uint8_t pad) {  // 0x24, 0x2C, 0x34, 0x3C, 0x89
 	uint8_t tmp;
 	switch (cpu->currentOpCode) {
 		case INSTRUCTION_SPECIAL_BIT_IMM_A: val = *((uint8_t*)cpu->arg); break;
-		case INSTRUCTION_SPECIAL_BIT_ZPG_X_A: val = MEMORY_GET_BYTE(cpu->RAM, *((uint8_t*)(cpu->arg + cpu->X))); break;
-		case INSTRUCTION_SPECIAL_BIT_ABS_X_A: val = MEMORY_GET_BYTE(cpu->RAM, *((uint16_t*)(cpu->arg + cpu->X))); break;
+		case INSTRUCTION_SPECIAL_BIT_ZPG_X_A: val = MEMORY_GET_BYTE(cpu, *((uint8_t*)(cpu->arg + cpu->X))); break;
+		case INSTRUCTION_SPECIAL_BIT_ABS_X_A: val = MEMORY_GET_BYTE(cpu, *((uint16_t*)(cpu->arg + cpu->X))); break;
 		default: val = InstructionDecodeAddressingInput(cpu);
 	}
 	tmp = val & cpu->A;
@@ -69,10 +68,10 @@ void InstructionTSB(CPU* cpu, uint8_t pad) {  // 0x04, 0x0C
 		case INSTRUCTION_SPECIAL_TSB_ABS: address = *((uint16_t*)(cpu->arg)); break;
 		default: address = 0;
 	}
-	data = MEMORY_GET_BYTE(cpu->RAM, address);
+	data = MEMORY_GET_BYTE(cpu, address);
 	tmp = data & cpu->A;
 	data = data & ~(cpu->A);
-	MEMORY_SET_BYTE(cpu->RAM, address, data);
+	MEMORY_SET_BYTE(cpu, address, data);
 	cpu->F.flags.Z = tmp == 0;
 }
 void InstructionTRB(CPU* cpu, uint8_t pad) {  // 0x14, 0x1C
@@ -84,10 +83,10 @@ void InstructionTRB(CPU* cpu, uint8_t pad) {  // 0x14, 0x1C
 		case INSTRUCTION_SPECIAL_TRB_ABS: address = *((uint16_t*)(cpu->arg)); break;
 		default: address = 0;
 	}
-	data = MEMORY_GET_BYTE(cpu->RAM, address);
+	data = MEMORY_GET_BYTE(cpu, address);
 	tmp = data & cpu->A;
 	data = data | cpu->A;
-	MEMORY_SET_BYTE(cpu->RAM, address, data);
+	MEMORY_SET_BYTE(cpu, address, data);
 	cpu->F.flags.Z = tmp != 0;
 }
 
@@ -101,9 +100,9 @@ void InstructionASL(CPU* cpu, uint8_t pad) {  // 0x06, 0x0A, 0x0E, 0x16, 0x1E
 		cpu->A = tmp;
 	} else {
 		dest = InstructionDecodeAddressingDest(cpu);
-		data = MEMORY_GET_BYTE(cpu->RAM, dest);
+		data = MEMORY_GET_BYTE(cpu, dest);
 		tmp = data << 1;
-		MEMORY_SET_BYTE(cpu->RAM, dest, tmp);
+		MEMORY_SET_BYTE(cpu, dest, tmp);
 	}
 	cpu->F.flags.C = (data & 0x80);
 	cpu->F.flags.N = (tmp & 0x80) == 0x80;
@@ -119,9 +118,9 @@ void InstructionLSR(CPU* cpu, uint8_t pad) {  // 0x46, 0x4A, 0x4E, 0x56, 0x5E
 		cpu->A = tmp;
 	} else {
 		dest = InstructionDecodeAddressingDest(cpu);
-		data = MEMORY_GET_BYTE(cpu->RAM, dest);
+		data = MEMORY_GET_BYTE(cpu, dest);
 		tmp = data >> 1;
-		MEMORY_SET_BYTE(cpu->RAM, dest, tmp);
+		MEMORY_SET_BYTE(cpu, dest, tmp);
 	}
 	cpu->F.flags.C = (data & 1);
 	cpu->F.flags.N = (tmp & 0x80) == 0x80;
@@ -138,10 +137,10 @@ void InstructionROL(CPU* cpu, uint8_t pad) {
 		cpu->A = tmp;
 	} else {
 		dest = InstructionDecodeAddressingDest(cpu);
-		data = MEMORY_GET_BYTE(cpu->RAM, dest);
+		data = MEMORY_GET_BYTE(cpu, dest);
 		tmp = data << 1;
 		tmp |= cpu->F.flags.C;
-		MEMORY_SET_BYTE(cpu->RAM, dest, tmp);
+		MEMORY_SET_BYTE(cpu, dest, tmp);
 	}
 	cpu->F.flags.C = (data & 0x80);
 	cpu->F.flags.N = (tmp & 0x80) == 0x80;
@@ -158,10 +157,10 @@ void InstructionROR(CPU* cpu, uint8_t pad) {  // 0x66, 0x6A, 0x6E, 0x76, 0x7E
 		cpu->A = tmp;
 	} else {
 		dest = InstructionDecodeAddressingDest(cpu);
-		data = MEMORY_GET_BYTE(cpu->RAM, dest);
+		data = MEMORY_GET_BYTE(cpu, dest);
 		tmp = data >> 1;
 		tmp |= cpu->F.flags.C << 7;
-		MEMORY_SET_BYTE(cpu->RAM, dest, tmp);
+		MEMORY_SET_BYTE(cpu, dest, tmp);
 	}
 	cpu->F.flags.C = (data & 1);
 	cpu->F.flags.N = (tmp & 0x80) == 0x80;
@@ -172,12 +171,12 @@ void InstructionROR(CPU* cpu, uint8_t pad) {  // 0x66, 0x6A, 0x6E, 0x76, 0x7E
 void InstructionSMB(CPU* cpu, uint8_t bitPos) {	 // 0x87, 0x97, 0xA7, 0xB7, 0xC7, 0xD7, 0xE7, 0xF7
 	uint8_t address;
 	address = *((uint8_t*)cpu->arg);
-	MEMORY_SET_BYTE(cpu->RAM, address, MEMORY_GET_BYTE(cpu->RAM, address) | (1 << bitPos));
+	MEMORY_SET_BYTE(cpu, address, MEMORY_GET_BYTE(cpu, address) | (1 << bitPos));
 }
 void InstructionRMB(CPU* cpu, uint8_t bitPos) {	 // 0x07, 0x17, 0x27, 0x37, 0x47, 0x57, 0x67, 0x77
 	uint8_t address;
 	address = *((uint8_t*)cpu->arg);
-	MEMORY_SET_BYTE(cpu->RAM, address, MEMORY_GET_BYTE(cpu->RAM, address) & ~(1 << bitPos));
+	MEMORY_SET_BYTE(cpu, address, MEMORY_GET_BYTE(cpu, address) & ~(1 << bitPos));
 }
 
 // works (including Decimal mode as far as i know)
@@ -284,7 +283,7 @@ void InstructionTSX(CPU* cpu, uint8_t pad) {  // 0xBA
 void InstructionLDA(CPU* cpu, uint8_t pad) {  // 0xA1, 0xA5, 0xA9, 0xAD, 0xB1, 0xB2, 0xB5, 0xB9, 0xBD
 	uint8_t val;
 	if (cpu->currentOpCode == INSTRUCTION_SPECIAL_LDA_PTR_ZPG) {
-		val = MEMORY_GET_BYTE(cpu->RAM, MEMORY_GET_WORD(cpu->RAM, *((uint8_t*)cpu->arg)));
+		val = MEMORY_GET_BYTE(cpu, MEMORY_GET_WORD(cpu, *((uint8_t*)cpu->arg)));
 	} else {
 		val = InstructionDecodeAddressingInput(cpu);
 	}
@@ -323,33 +322,33 @@ void InstructionSTZ(CPU* cpu, uint8_t pad) {  // 0x64, 0x74, 0x9C, 0x9E
 		case INSTRUCTION_SPECIAL_STZ_ABS_X: dest = *((uint16_t*)cpu->arg) + cpu->X; break;
 		default: dest = 0;	// should never happen
 	}
-	MEMORY_SET_BYTE(cpu->RAM, dest, 0);
+	MEMORY_SET_BYTE(cpu, dest, 0);
 }
 void InstructionSTA(CPU* cpu, uint8_t pad) {  // 0x81, 0x85, 0x8D, 0x91, 0x92, 0x95, 0x9D, 0x99
 	uint16_t dest;
 	if (cpu->currentOpCode == INSTRUCTION_SPECIAL_STA_PTR_ZPG) {
-		dest = MEMORY_GET_WORD(cpu->RAM, *((uint8_t*)cpu->arg));
+		dest = MEMORY_GET_WORD(cpu, *((uint8_t*)cpu->arg));
 	} else {
 		dest = InstructionDecodeAddressingDest(cpu);
 	}
-	MEMORY_SET_BYTE(cpu->RAM, dest, cpu->A);
+	MEMORY_SET_BYTE(cpu, dest, cpu->A);
 }
 void InstructionSTX(CPU* cpu, uint8_t pad) {  // 0x86, 0x8E, 0x96
 	uint16_t dest;
 	dest = InstructionDecodeAddressingDest(cpu);
-	MEMORY_SET_BYTE(cpu->RAM, dest, cpu->X);
+	MEMORY_SET_BYTE(cpu, dest, cpu->X);
 }
 void InstructionSTY(CPU* cpu, uint8_t pad) {  // 0x84, 0x8C, 0x94
 	uint16_t dest;
 	dest = InstructionDecodeAddressingDest(cpu);
-	MEMORY_SET_BYTE(cpu->RAM, dest, cpu->Y);
+	MEMORY_SET_BYTE(cpu, dest, cpu->Y);
 }
 
 void InstructionCMP(CPU* cpu, uint8_t pad) {  // 0xC1, 0xC5, 0xC9, 0xCD, 0xD1, 0xD2, 0xD5, 0xD9, 0xDD
 	uint8_t val;
 	uint16_t tmp;
 	if (cpu->currentOpCode == INSTRUCTION_SPECIAL_CMP_PTR_ZPG_A)
-		val = MEMORY_GET_BYTE(cpu->RAM, *((uint8_t*)cpu->arg));
+		val = MEMORY_GET_BYTE(cpu, *((uint8_t*)cpu->arg));
 	else
 		val = InstructionDecodeAddressingInput(cpu);
 	tmp = (uint16_t)cpu->A - (uint16_t)val;
@@ -387,8 +386,8 @@ void InstructionINC(CPU* cpu, uint8_t pad) {  // 0x1A, 0xE6, 0xEE, 0xF6, 0xFE
 		tmp = cpu->A;
 	} else {
 		dest = InstructionDecodeAddressingDest(cpu);
-		tmp = MEMORY_GET_BYTE(cpu->RAM, dest) + 1;
-		MEMORY_SET_BYTE(cpu->RAM, dest, tmp);
+		tmp = MEMORY_GET_BYTE(cpu, dest) + 1;
+		MEMORY_SET_BYTE(cpu, dest, tmp);
 	}
 	cpu->F.flags.Z = tmp == 0;
 	cpu->F.flags.N = (tmp & 0x80) == 0x80;
@@ -412,8 +411,8 @@ void InstructionDEC(CPU* cpu, uint8_t pad) {  // 0x3A, 0xC6, 0xCE, 0xD6, 0xDE
 		tmp = cpu->A;
 	} else {
 		dest = InstructionDecodeAddressingDest(cpu);
-		tmp = MEMORY_GET_BYTE(cpu->RAM, dest) - 1;
-		MEMORY_SET_BYTE(cpu->RAM, dest, tmp);
+		tmp = MEMORY_GET_BYTE(cpu, dest) - 1;
+		MEMORY_SET_BYTE(cpu, dest, tmp);
 	}
 	cpu->F.flags.Z = tmp == 0;
 	cpu->F.flags.N = (tmp & 0x80) == 0x80;
@@ -432,7 +431,7 @@ void InstructionDEY(CPU* cpu, uint8_t pad) {  // 0x88
 void InstructionORA(CPU* cpu, uint8_t pad) {  // 0x01, 0x05, 0x09, 0x0D, 0x10, 0x11, 0x12, 0x15, 0x19, 0x1D
 	uint8_t val;
 	if (cpu->currentOpCode == INSTRUCTION_SPECIAL_ORA_PTR_ZPG_A)
-		val = MEMORY_GET_BYTE(cpu->RAM, MEMORY_GET_WORD(cpu->RAM, *((uint8_t*)cpu->arg)));
+		val = MEMORY_GET_BYTE(cpu, MEMORY_GET_WORD(cpu, *((uint8_t*)cpu->arg)));
 	else
 		val = InstructionDecodeAddressingInput(cpu);
 	cpu->A = cpu->A | val;
@@ -442,7 +441,7 @@ void InstructionORA(CPU* cpu, uint8_t pad) {  // 0x01, 0x05, 0x09, 0x0D, 0x10, 0
 void InstructionAND(CPU* cpu, uint8_t pad) {  // 0x21, 0x25, 0x29, 0x2D, 0x31, 0x32, 0x35, 0x39, 0x3D
 	uint8_t val;
 	if (cpu->currentOpCode == INSTRUCTION_SPECIAL_AND_PTR_ZPG_A)
-		val = MEMORY_GET_BYTE(cpu->RAM, MEMORY_GET_WORD(cpu->RAM, *((uint8_t*)cpu->arg)));
+		val = MEMORY_GET_BYTE(cpu, MEMORY_GET_WORD(cpu, *((uint8_t*)cpu->arg)));
 	else
 		val = InstructionDecodeAddressingInput(cpu);
 	cpu->A = cpu->A & val;
@@ -452,7 +451,7 @@ void InstructionAND(CPU* cpu, uint8_t pad) {  // 0x21, 0x25, 0x29, 0x2D, 0x31, 0
 void InstructionEOR(CPU* cpu, uint8_t pad) {  // 0x41, 0x45, 0x49, 0x4D, 0x51, 0x52, 0x55, 0x59, 0x5D
 	uint8_t val;
 	if (cpu->currentOpCode == INSTRUCTION_SPECIAL_EOR_PTR_ZPG_A)
-		val = MEMORY_GET_BYTE(cpu->RAM, MEMORY_GET_WORD(cpu->RAM, *((uint8_t*)cpu->arg)));
+		val = MEMORY_GET_BYTE(cpu, MEMORY_GET_WORD(cpu, *((uint8_t*)cpu->arg)));
 	else
 		val = InstructionDecodeAddressingInput(cpu);
 	cpu->A = cpu->A ^ val;
@@ -465,9 +464,9 @@ void InstructionJMP(CPU* cpu, uint8_t pad) {  // 0x4C, 0x6C, 0x7C
 	if (cpu->currentOpCode == INSTRUCTION_SPECIAL_JMP_ABS)
 		val = *((uint16_t*)cpu->arg);
 	else if (cpu->currentOpCode == INSTRUCTION_SPECIAL_JMP_IND)
-		val = MEMORY_GET_BYTE(cpu->RAM, MEMORY_GET_WORD(cpu->RAM, *((uint8_t*)cpu->arg)));
+		val = MEMORY_GET_BYTE(cpu, MEMORY_GET_WORD(cpu, *((uint8_t*)cpu->arg)));
 	else if (cpu->currentOpCode == INSTRUCTION_SPECIAL_JMP_IND_ABS_X)
-		val = MEMORY_GET_WORD(cpu->RAM, MEMORY_GET_WORD(cpu->RAM, (uint8_t)(*((uint8_t*)cpu->arg)) + cpu->X));
+		val = MEMORY_GET_WORD(cpu, MEMORY_GET_WORD(cpu, (uint8_t)(*((uint8_t*)cpu->arg)) + cpu->X));
 	else
 		val = 0;
 	cpu->PC = val;

@@ -24,15 +24,15 @@ void ExecuteInterrupt(CPU* cpu) {
 	PushByte(cpu, cpu->F.reg);
 	cpu->waitingForInterrupt = false;
 	if (cpu->interruptSig.RESET) {
-		cpu->PC = MEMORY_GET_WORD(cpu->RAM, VECTOR_RESET);
+		cpu->PC = MEMORY_GET_WORD(cpu, VECTOR_RESET);
 		cpu->waitingForReset = false;
 		cpu->interruptSig = (InterruptSig){0};
 	} else if (cpu->interruptSig.NMI) {
-		cpu->PC = MEMORY_GET_WORD(cpu->RAM, VECTOR_NMI);
+		cpu->PC = MEMORY_GET_WORD(cpu, VECTOR_NMI);
 		cpu->interruptSig.NMI = false;
 		cpu->F.flags.I = true;
 	} else {
-		cpu->PC = MEMORY_GET_WORD(cpu->RAM, VECTOR_IRQ);
+		cpu->PC = MEMORY_GET_WORD(cpu, VECTOR_IRQ);
 		cpu->interruptSig.IRQ = false;
 		cpu->F.flags.I = true;
 	}

@@ -25,26 +25,26 @@ static uint8_t addressingModeSize[] = {
 static void PutInstructionSub(CPU* cpu, const char* instructionName, AddressingMode addressingMode, uint16_t addr) {
 	printf("%s ", instructionName);
 	switch (addressingMode) {
-		case ADDRESSING_MODE_IMMEDIATE: printf("#$%02X", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
-		case ADDRESSING_MODE_ABSOLUTE: printf("$%04X\n", MEMORY_GET_WORD(cpu->RAM, addr + 1)); break;
-		case ADDRESSING_MODE_ABSOLUTE_INDEXED_X: printf("$%04X,x", MEMORY_GET_WORD(cpu->RAM, addr + 1)); break;
-		case ADDRESSING_MODE_ABSOLUTE_INDEXED_Y: printf("$%04X,y", MEMORY_GET_WORD(cpu->RAM, addr + 1)); break;
-		case ADDRESSING_MODE_INDIRECT: printf("($%04X)", MEMORY_GET_WORD(cpu->RAM, addr + 1)); break;
-		case ADDRESSING_MODE_ABSOLUTE_INDIRECT_ZEROPAGE: printf("($%02X)", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
-		case ADDRESSING_MODE_INDEXED_X_INDIRECT: printf("($%02X,x)", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
-		case ADDRESSING_MODE_INDIRECT_INDEXED_Y: printf("($%02X),y", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
-		case ADDRESSING_MODE_RELATIVE: printf("%d", (int8_t)(MEMORY_GET_BYTE(cpu->RAM, addr + 1) + 2)); break;
-		case ADDRESSING_MODE_ZEROPAGE: printf("$%02X", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
-		case ADDRESSING_MODE_ZEROPAGE_INDEXED_X: printf("$%02X,x", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
-		case ADDRESSING_MODE_ZEROPAGE_INDEXED_Y: printf("$%02X,y", MEMORY_GET_BYTE(cpu->RAM, addr + 1)); break;
-		case ADDRESSING_MODE_X_INDEXED_INDIRECT_ABSOLUTE: printf("($%04X,x)", MEMORY_GET_WORD(cpu->RAM, addr + 1)); break;
+		case ADDRESSING_MODE_IMMEDIATE: printf("#$%02X", MEMORY_GET_BYTE(cpu, addr + 1)); break;
+		case ADDRESSING_MODE_ABSOLUTE: printf("$%04X\n", MEMORY_GET_WORD(cpu, addr + 1)); break;
+		case ADDRESSING_MODE_ABSOLUTE_INDEXED_X: printf("$%04X,x", MEMORY_GET_WORD(cpu, addr + 1)); break;
+		case ADDRESSING_MODE_ABSOLUTE_INDEXED_Y: printf("$%04X,y", MEMORY_GET_WORD(cpu, addr + 1)); break;
+		case ADDRESSING_MODE_INDIRECT: printf("($%04X)", MEMORY_GET_WORD(cpu, addr + 1)); break;
+		case ADDRESSING_MODE_ABSOLUTE_INDIRECT_ZEROPAGE: printf("($%02X)", MEMORY_GET_BYTE(cpu, addr + 1)); break;
+		case ADDRESSING_MODE_INDEXED_X_INDIRECT: printf("($%02X,x)", MEMORY_GET_BYTE(cpu, addr + 1)); break;
+		case ADDRESSING_MODE_INDIRECT_INDEXED_Y: printf("($%02X),y", MEMORY_GET_BYTE(cpu, addr + 1)); break;
+		case ADDRESSING_MODE_RELATIVE: printf("%d", (int8_t)(MEMORY_GET_BYTE(cpu, addr + 1) + 2)); break;
+		case ADDRESSING_MODE_ZEROPAGE: printf("$%02X", MEMORY_GET_BYTE(cpu, addr + 1)); break;
+		case ADDRESSING_MODE_ZEROPAGE_INDEXED_X: printf("$%02X,x", MEMORY_GET_BYTE(cpu, addr + 1)); break;
+		case ADDRESSING_MODE_ZEROPAGE_INDEXED_Y: printf("$%02X,y", MEMORY_GET_BYTE(cpu, addr + 1)); break;
+		case ADDRESSING_MODE_X_INDEXED_INDIRECT_ABSOLUTE: printf("($%04X,x)", MEMORY_GET_WORD(cpu, addr + 1)); break;
 		default: break;
 	}
 	printf("\n");
 }
 
 uint8_t PutInstruction(CPU* cpu, uint16_t addr) {
-	uint8_t opcode = MEMORY_GET_BYTE(cpu->RAM, addr);
+	uint8_t opcode = MEMORY_GET_BYTE(cpu, addr);
 	switch (opcode) {
 		case INSTRUCTION_SPECIAL_BRK:
 			PutInstructionSub(cpu, "BRK", ADDRESSING_MODE_IMMEDIATE, addr);
