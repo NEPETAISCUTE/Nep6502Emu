@@ -3,8 +3,36 @@
 #include "CPU.h"
 #include "Debug.h"
 #include "Interrupt.h"
+#include "raylib.h"
 
-bool dumpFileIntoRAM(const char* filename, uint16_t address, uint8_t* RAM) {
+uint8_t RAM[0x6000];
+uint8_t ROM[0x8000];
+
+RenderTexture2D renderTexture;
+Color c;
+Color palette[256] = {
+	{0, 0, 0, 255},		 {0, 2, 170, 255},	   {20, 170, 0, 255},	{0, 170, 170, 255},	  {170, 0, 3, 255},	  {170, 0, 170, 255},
+	{170, 85, 170, 255}, {170, 170, 170, 255}, {85, 85, 85, 255},	{85, 85, 255, 255},	  {85, 255, 85, 255}, {85, 255, 255, 255},
+	{255, 85, 85, 255},	 {255, 85, 255, 255},  {255, 255, 85, 255}, {255, 255, 255, 255},
+};
+
+uint16_t getHex(uint8_t digitCnt) {
+	uint16_t result = 0;
+	for (uint8_t i = 0; i < digitCnt; i++) {
+		char c = getchar();
+		if (c >= '0' && c <= '9')
+			result = (result << 4) | (c - '0');
+		else if (c >= 'A' && c <= 'F')
+			result = (result << 4) | (c - 'A' + 10);
+		else {
+			fflush(stdin);
+			return 0;
+		}
+	}
+	return result;
+}
+
+bool dumpFileIntoMem(const char* filename, uint16_t address, uint8_t* RAM) {
 	FILE* f = fopen(filename, "rb");
 	if (f == NULL) return false;
 
@@ -23,9 +51,41 @@ bool dumpFileIntoRAM(const char* filename, uint16_t address, uint8_t* RAM) {
 	return true;
 }
 
-int main(int argc, char** argv) {
-	uint8_t RAM[0x10000];
+uint8_t onCPURead(uint16_t address) {
+	if (address < 0x6000) {
+		return RAM[address];
+	} else if (address < 0x8000) {
+		uint8_t inputByte = 0;
+		inputByte |= (IsKeyDown(KEY_UP) ? 1 : 0) << 7;
+		inputByte |= (IsKeyDown(KEY_DOWN) ? 1 : 0) << 6;
+		inputByte |= (IsKeyDown(KEY_LEFT) ? 1 : 0) << 5;
+		inputByte |= (IsKeyDown(KEY_RIGHT) ? 1 : 0) << 4;
+		inputByte |= (IsKeyDown(KEY_SPACE) ? 1 : 0) << 3;
+		inputByte |= (IsKeyDown(KEY_ENTER) ? 1 : 0) << 2;
+		inputByte |= (IsKeyDown(KEY_Z) ? 1 : 0) << 1;
+		inputByte |= (IsKeyDown(KEY_X) ? 1 : 0) << 0;
+		return inputByte;
+		// do nothing for now, I/O later
+		return 0;
+	} else {
+		return ROM[address - 0x8000];
+	}
+}
 
+void onCPUWrite(uint16_t address, uint8_t data) {
+	if (address < 0x6000) {
+		RAM[address] = data;
+	} else if (address < 0x8000) {
+		BeginTextureMode(renderTexture);
+		DrawPixel((address - 0x6000) % 128, (address - 0x6000) / 128, palette[data]);
+		EndTextureMode();
+		return;
+	} else {
+		return;
+	}
+}
+
+int main(int argc, char** argv) {
 	/*
 	RAM[0x8000] = 0xEA;	 // NOP
 
@@ -47,68 +107,83 @@ int main(int argc, char** argv) {
 	RAM[0x800A] = 0x80;	 // BRA loop
 	RAM[0x800B] = -2;
 	*/
-	if (argc > 1) dumpFileIntoRAM(argv[1], 0x8000, RAM);
+	InitWindow(1024, 1024, "testEmulator");
+	renderTexture = LoadRenderTexture(64, 64);
+
+	if (argc > 1) dumpFileIntoMem(argv[1], 0, ROM);
 
 	CPU cpu;
-	CPUInit(&cpu);
+	CPUInit(&cpu, onCPURead, onCPUWrite);
 	TriggerInterrupt(&cpu, INTERRUPT_RESET);
-
-	cpu.RAM = RAM;
+	SetTargetFPS(100);
 	bool shouldQuit = false;
-	while (!shouldQuit) {
-		printf("> ");
-		char c = '\0';
-		do {
-			c = getchar();
-			if (c == '\n') c = '\0';
-		} while (c == '\0');
-		if (c == 'q') shouldQuit = true;
-		if (c == 's') CPURunCycle(&cpu);
-		if (c == 'n') {
-			do {
-				CPURunCycle(&cpu);
-			} while (cpu.isOpcodeFetched);
-		}
-		if (c == 'd') {
-			PutCPUState(&cpu);
-		}
-		if (c == 'z') {
-			for (size_t j = 0; j < 0x10; j++) {
-				for (size_t i = 0; i < 0x10; i++) {
-					printf("%02X ", RAM[i + j * 0x10]);
-				}
-				printf("\n");
-			}
-		}
-		if (c == 's') {
-			for (size_t j = 0; j < 0x10; j++) {
-				for (size_t i = 0; i < 0x10; i++) {
-					printf("%02X ", RAM[0x100 + i + j * 0x10]);
-				}
-				printf("\n");
-			}
-		}
-		if (c == 'r') {
-			uint16_t breakAddr;
-			scanf("%04X", &breakAddr);
-			do {
-				CPURunCycle(&cpu);
-			} while (cpu.PC != breakAddr || cpu.isOpcodeFetched);
-		}
-		if (c == '*') {
-			uint16_t readAddr;
-			scanf("%04X", &readAddr);
-			printf("0x%02X\n", RAM[readAddr]);
-		}
-		if (c == 'R') {
-			TriggerInterrupt(&cpu, INTERRUPT_RESET);
-		}
-		if (c == 'N') {
+
+	double timeStart = GetTime();
+	while (!WindowShouldClose()) {
+		CPURunCycle(&cpu);
+		double timeEnd = GetTime();
+		if (timeEnd - timeStart >= (1.0 / 60.0)) {
+			timeStart = timeEnd;
 			TriggerInterrupt(&cpu, INTERRUPT_NMI);
-		}
-		if (c == 'I') {
-			TriggerInterrupt(&cpu, INTERRUPT_IRQ);
+			BeginDrawing();
+			DrawTexturePro(renderTexture.texture, (Rectangle){0.f, 0.f, renderTexture.texture.width, -renderTexture.texture.height},
+						   (Rectangle){0.f, 0.f, 1024, 1024}, (Vector2){0.f, 0.f}, 0.f, WHITE);
+			EndDrawing();
 		}
 	}
+	CloseWindow();
 	return 0;
-}
+} /*
+ printf("> ");
+		 char c = '\0';
+		 do {
+			 c = getchar();
+			 if (c == '\n') c = '\0';
+		 } while (c == '\0');
+		 if (c == 'q') shouldQuit = true;
+		 if (c == 's') CPURunCycle(&cpu);
+		 if (c == 'n') {
+			 do {
+				 CPURunCycle(&cpu);
+			 } while (cpu.isOpcodeFetched);
+		 }
+		 if (c == 'd') {
+			 PutCPUState(&cpu);
+		 }
+		 if (c == 'z') {
+			 for (size_t j = 0; j < 0x10; j++) {
+				 for (size_t i = 0; i < 0x10; i++) {
+					 printf("%02X ", onCPURead(i + j * 0x10));
+				 }
+				 printf("\n");
+			 }
+		 }
+		 if (c == 's') {
+			 for (size_t j = 0; j < 0x10; j++) {
+				 for (size_t i = 0; i < 0x10; i++) {
+					 printf("%02X ", onCPURead(0x100 + i + j * 0x10));
+				 }
+				 printf("\n");
+			 }
+		 }
+		 if (c == 'r') {
+			 uint16_t breakAddr;
+			 breakAddr = getHex(4);
+			 do {
+				 CPURunCycle(&cpu);
+			 } while (cpu.PC != breakAddr || cpu.isOpcodeFetched);
+		 }
+		 if (c == '*') {
+			 uint16_t readAddr;
+			 readAddr = getHex(4);
+			 printf("0x%02X\n", onCPURead(readAddr));
+		 }
+		 if (c == 'R') {
+			 TriggerInterrupt(&cpu, INTERRUPT_RESET);
+		 }
+		 if (c == 'N') {
+			 TriggerInterrupt(&cpu, INTERRUPT_NMI);
+		 }
+		 if (c == 'I') {
+			 TriggerInterrupt(&cpu, INTERRUPT_IRQ);
+		 }*/
