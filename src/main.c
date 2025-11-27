@@ -55,16 +55,6 @@ uint8_t onCPURead(uint16_t address) {
 	if (address < 0x6000) {
 		return RAM[address];
 	} else if (address < 0x8000) {
-		uint8_t inputByte = 0;
-		inputByte |= (IsKeyDown(KEY_UP) ? 1 : 0) << 7;
-		inputByte |= (IsKeyDown(KEY_DOWN) ? 1 : 0) << 6;
-		inputByte |= (IsKeyDown(KEY_LEFT) ? 1 : 0) << 5;
-		inputByte |= (IsKeyDown(KEY_RIGHT) ? 1 : 0) << 4;
-		inputByte |= (IsKeyDown(KEY_SPACE) ? 1 : 0) << 3;
-		inputByte |= (IsKeyDown(KEY_ENTER) ? 1 : 0) << 2;
-		inputByte |= (IsKeyDown(KEY_Z) ? 1 : 0) << 1;
-		inputByte |= (IsKeyDown(KEY_X) ? 1 : 0) << 0;
-		return inputByte;
 		// do nothing for now, I/O later
 		return 0;
 	} else {
@@ -76,9 +66,6 @@ void onCPUWrite(uint16_t address, uint8_t data) {
 	if (address < 0x6000) {
 		RAM[address] = data;
 	} else if (address < 0x8000) {
-		BeginTextureMode(renderTexture);
-		DrawPixel((address - 0x6000) % 128, (address - 0x6000) / 128, palette[data]);
-		EndTextureMode();
 		return;
 	} else {
 		return;
@@ -107,31 +94,23 @@ int main(int argc, char** argv) {
 	RAM[0x800A] = 0x80;	 // BRA loop
 	RAM[0x800B] = -2;
 	*/
-	InitWindow(1024, 1024, "testEmulator");
-	renderTexture = LoadRenderTexture(64, 64);
 
 	if (argc > 1) dumpFileIntoMem(argv[1], 0, ROM);
 
 	CPU cpu;
 	CPUInit(&cpu, onCPURead, onCPUWrite);
 	TriggerInterrupt(&cpu, INTERRUPT_RESET);
-	SetTargetFPS(100);
 	bool shouldQuit = false;
 
 	double timeStart = GetTime();
-	while (!WindowShouldClose()) {
+	while (!shouldQuit) {
 		CPURunCycle(&cpu);
 		double timeEnd = GetTime();
 		if (timeEnd - timeStart >= (1.0 / 60.0)) {
 			timeStart = timeEnd;
 			TriggerInterrupt(&cpu, INTERRUPT_NMI);
-			BeginDrawing();
-			DrawTexturePro(renderTexture.texture, (Rectangle){0.f, 0.f, renderTexture.texture.width, -renderTexture.texture.height},
-						   (Rectangle){0.f, 0.f, 1024, 1024}, (Vector2){0.f, 0.f}, 0.f, WHITE);
-			EndDrawing();
 		}
 	}
-	CloseWindow();
 	return 0;
 } /*
  printf("> ");
