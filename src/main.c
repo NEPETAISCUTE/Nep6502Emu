@@ -3,18 +3,9 @@
 #include "CPU.h"
 #include "Debug.h"
 #include "Interrupt.h"
-#include "raylib.h"
 
 uint8_t RAM[0x6000];
 uint8_t ROM[0x8000];
-
-RenderTexture2D renderTexture;
-Color c;
-Color palette[256] = {
-	{0, 0, 0, 255},		 {0, 2, 170, 255},	   {20, 170, 0, 255},	{0, 170, 170, 255},	  {170, 0, 3, 255},	  {170, 0, 170, 255},
-	{170, 85, 170, 255}, {170, 170, 170, 255}, {85, 85, 85, 255},	{85, 85, 255, 255},	  {85, 255, 85, 255}, {85, 255, 255, 255},
-	{255, 85, 85, 255},	 {255, 85, 255, 255},  {255, 255, 85, 255}, {255, 255, 255, 255},
-};
 
 uint16_t getHex(uint8_t digitCnt) {
 	uint16_t result = 0;
@@ -55,8 +46,7 @@ uint8_t onCPURead(uint16_t address) {
 	if (address < 0x6000) {
 		return RAM[address];
 	} else if (address < 0x8000) {
-		// do nothing for now, I/O later
-		return 0;
+		return getchar();
 	} else {
 		return ROM[address - 0x8000];
 	}
@@ -66,6 +56,7 @@ void onCPUWrite(uint16_t address, uint8_t data) {
 	if (address < 0x6000) {
 		RAM[address] = data;
 	} else if (address < 0x8000) {
+		putchar(data);
 		return;
 	} else {
 		return;
@@ -102,14 +93,8 @@ int main(int argc, char** argv) {
 	TriggerInterrupt(&cpu, INTERRUPT_RESET);
 	bool shouldQuit = false;
 
-	double timeStart = GetTime();
 	while (!shouldQuit) {
 		CPURunCycle(&cpu);
-		double timeEnd = GetTime();
-		if (timeEnd - timeStart >= (1.0 / 60.0)) {
-			timeStart = timeEnd;
-			TriggerInterrupt(&cpu, INTERRUPT_NMI);
-		}
 	}
 	return 0;
 } /*

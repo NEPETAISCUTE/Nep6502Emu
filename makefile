@@ -3,7 +3,7 @@ RM+=-rfv
 CC     := gcc
 CFLAGS := -Wall -O3
 DFLAGS := -Wall -g
-LIBS   := -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+LIBS   := -lm
 LD     := gcc
 
 SRC     := src
