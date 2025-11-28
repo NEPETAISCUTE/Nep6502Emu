@@ -42,21 +42,41 @@ bool dumpFileIntoMem(const char* filename, uint16_t address, uint8_t* RAM) {
 	return true;
 }
 
-uint8_t onCPURead(uint16_t address) {
-	if (address < 0x6000) {
-		return RAM[address];
-	} else if (address < 0x8000) {
-		return getchar();
-	} else {
-		return ROM[address - 0x8000];
+void putzpg(void) {
+	for (uint16_t j = 0; j < 0x10; j++) {
+		for (uint16_t i = 0; i < 0x10; i++) {
+			printf("%02X ", RAM[j * 0x10 + i]);
+		}
+		putchar('\n');
 	}
 }
 
+uint8_t onCPURead(uint16_t address) {
+	uint8_t retval = 0;
+	if (address < 0x6000) {
+		retval = RAM[address];
+	} else if (address < 0x8000) {
+		switch (address) {
+			case 0x6000: retval = getchar(); break;
+			default: retval = 0;
+		}
+	} else {
+		retval = ROM[address - 0x8000];
+	}
+	// printf("cpu reading from address %04X = %02X\n", address, retval);
+	return retval;
+}
+
 void onCPUWrite(uint16_t address, uint8_t data) {
+	// printf("cpu writing to address %04X = %02X\n", address, data);
 	if (address < 0x6000) {
 		RAM[address] = data;
 	} else if (address < 0x8000) {
-		putchar(data);
+		switch (address) {
+			case 0x6000: putchar(data); break;
+			default:
+		}
+
 		return;
 	} else {
 		return;
@@ -94,7 +114,13 @@ int main(int argc, char** argv) {
 	bool shouldQuit = false;
 
 	while (!shouldQuit) {
+		uint16_t cpuLastPC = cpu.PC;
 		CPURunCycle(&cpu);
+		if (cpuLastPC == cpu.PC && !cpu.isOpcodeFetched) {
+			PutCPUState(&cpu);
+			putzpg();
+			break;
+		}
 	}
 	return 0;
 } /*
