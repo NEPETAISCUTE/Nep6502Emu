@@ -459,14 +459,15 @@ void InstructionEOR(CPU* cpu, uint8_t pad) {  // 0x41, 0x45, 0x49, 0x4D, 0x51, 0
 	cpu->F.flags.N = (cpu->A & 0x80) == 0x80;  // affects N flag
 }
 
+#include <stdio.h>
 void InstructionJMP(CPU* cpu, uint8_t pad) {  // 0x4C, 0x6C, 0x7C
 	uint16_t val;
 	if (cpu->currentOpCode == INSTRUCTION_SPECIAL_JMP_ABS)
 		val = *((uint16_t*)cpu->arg);
-	else if (cpu->currentOpCode == INSTRUCTION_SPECIAL_JMP_IND)
-		val = MEMORY_GET_BYTE(cpu, MEMORY_GET_WORD(cpu, *((uint8_t*)cpu->arg)));
-	else if (cpu->currentOpCode == INSTRUCTION_SPECIAL_JMP_IND_ABS_X)
-		val = MEMORY_GET_WORD(cpu, MEMORY_GET_WORD(cpu, (uint8_t)(*((uint8_t*)cpu->arg)) + cpu->X));
+	else if (cpu->currentOpCode == INSTRUCTION_SPECIAL_JMP_IND) {
+		val = MEMORY_GET_WORD(cpu, *((uint8_t*)cpu->arg));
+	} else if (cpu->currentOpCode == INSTRUCTION_SPECIAL_JMP_IND_ABS_X)
+		val = MEMORY_GET_WORD(cpu, (uint8_t)(*((uint8_t*)cpu->arg) + cpu->X));
 	else
 		val = 0;
 	cpu->PC = val;
