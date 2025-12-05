@@ -55,8 +55,8 @@ void InstructionBIT(CPU* cpu, uint8_t pad) {  // 0x24, 0x2C, 0x34, 0x3C, 0x89
 		default: val = InstructionDecodeAddressingInput(cpu);
 	}
 	tmp = val & cpu->A;
-	cpu->F.flags.N = tmp & 0x80;
-	cpu->F.flags.V = tmp & 1;
+	cpu->F.flags.N = val & 0x80;
+	cpu->F.flags.V = val & 0x40;
 	cpu->F.flags.Z = tmp == 0;
 }
 void InstructionTSB(CPU* cpu, uint8_t pad) {  // 0x04, 0x0C
@@ -352,7 +352,7 @@ void InstructionCMP(CPU* cpu, uint8_t pad) {  // 0xC1, 0xC5, 0xC9, 0xCD, 0xD1, 0
 	else
 		val = InstructionDecodeAddressingInput(cpu);
 	tmp = (uint16_t)cpu->A - (uint16_t)val;
-	cpu->F.flags.C = tmp > 0xFF;
+	cpu->F.flags.C = !(tmp > 0xFF);
 	cpu->F.flags.Z = ((uint8_t)tmp) == 0;
 	cpu->F.flags.N = (tmp & 0x80) == 0x80;
 }
