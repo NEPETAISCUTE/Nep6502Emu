@@ -20,8 +20,10 @@ void TriggerInterrupt(CPU* cpu, InterruptType interrupt) {
 
 void ExecuteInterrupt(CPU* cpu) {
 	if (cpu->resetHeld) return;
-	PushWord(cpu, cpu->PC);
-	PushByte(cpu, cpu->F.reg);
+	if (!cpu->interruptSig.RESET) {
+		PushWord(cpu, cpu->PC);
+		PushByte(cpu, cpu->F.reg);
+	}
 	cpu->waitingForInterrupt = false;
 	if (cpu->interruptSig.RESET) {
 		cpu->PC = MEMORY_GET_WORD(cpu, VECTOR_RESET);
