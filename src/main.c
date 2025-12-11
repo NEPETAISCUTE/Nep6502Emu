@@ -51,6 +51,24 @@ void putzpg(void) {
 	}
 }
 
+void putstack(void) {
+	for (uint16_t j = 0; j < 0x10; j++) {
+		for (uint16_t i = 0; i < 0x10; i++) {
+			printf("%02X ", RAM[0x100 + j * 0x10 + i]);
+		}
+		putchar('\n');
+	}
+}
+
+void putbuf(void) {
+	for (uint16_t j = 0; j < 0x10; j++) {
+		for (uint16_t i = 0; i < 0x10; i++) {
+			printf("%02X ", RAM[0x200 + j * 0x10 + i]);
+		}
+		putchar('\n');
+	}
+}
+
 uint8_t onCPURead(uint16_t address) {
 	uint8_t retval = 0;
 	if (address < 0x6000) {
@@ -106,7 +124,7 @@ int main(int argc, char** argv) {
 	RAM[0x800B] = -2;
 	*/
 
-	if (argc > 1) dumpFileIntoMem(argv[1], 0, ROM);
+	if (argc > 1) dumpFileIntoMem(argv[1], 0x0000, ROM);
 
 	CPU cpu;
 	CPUInit(&cpu, onCPURead, onCPUWrite);
@@ -116,9 +134,23 @@ int main(int argc, char** argv) {
 	while (!shouldQuit) {
 		uint16_t cpuLastPC = cpu.PC;
 		CPURunCycle(&cpu);
-		if (cpuLastPC == cpu.PC && !cpu.isOpcodeFetched) {
+		/*if (cpu.PC == 0x8073 && cpu.isOpcodeFetched == false) {
 			PutCPUState(&cpu);
 			putzpg();
+			printf("\n");
+			putbuf();
+		}*/
+		if (cpuLastPC == cpu.PC && !cpu.isOpcodeFetched) {
+			printf("infinite loop detected\n");
+			PutCPUState(&cpu);
+			printf("zpg: \n");
+			putzpg();
+			printf("\n");
+			printf("stack: \n");
+			putstack();
+			printf("\n");
+			printf("first 256 bytes of common RAM: \n");
+			putbuf();
 			break;
 		}
 	}
