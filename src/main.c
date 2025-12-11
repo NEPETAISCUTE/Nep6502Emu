@@ -4,8 +4,12 @@
 #include "Debug.h"
 #include "Interrupt.h"
 
-uint8_t RAM[0x6000];
-uint8_t ROM[0x8000];
+uint8_t RAM0[0x2000];		 // 8KB of fixed RAM
+uint8_t RAMX[0x2000 * 256];	 // 2MB of RAM in 8KB banks
+uint8_t ROMX[0x4000 * 256];	 // 4MB of ROM in 16KB banks
+uint8_t ROM0[0x4000];		 // 16KB of fixed ROM
+uint8_t RAMBank = 0;
+uint8_t ROMBank = 0;
 
 uint16_t getHex(uint8_t digitCnt) {
 	uint16_t result = 0;
@@ -45,7 +49,7 @@ bool dumpFileIntoMem(const char* filename, uint16_t address, uint8_t* RAM) {
 void putzpg(void) {
 	for (uint16_t j = 0; j < 0x10; j++) {
 		for (uint16_t i = 0; i < 0x10; i++) {
-			printf("%02X ", RAM[j * 0x10 + i]);
+			printf("%02X ", RAM0[j * 0x10 + i]);
 		}
 		putchar('\n');
 	}
@@ -54,7 +58,7 @@ void putzpg(void) {
 void putstack(void) {
 	for (uint16_t j = 0; j < 0x10; j++) {
 		for (uint16_t i = 0; i < 0x10; i++) {
-			printf("%02X ", RAM[0x100 + j * 0x10 + i]);
+			printf("%02X ", RAM0[0x100 + j * 0x10 + i]);
 		}
 		putchar('\n');
 	}
@@ -63,7 +67,7 @@ void putstack(void) {
 void putbuf(void) {
 	for (uint16_t j = 0; j < 0x10; j++) {
 		for (uint16_t i = 0; i < 0x10; i++) {
-			printf("%02X ", RAM[0x200 + j * 0x10 + i]);
+			printf("%02X ", RAM0[0x200 + j * 0x10 + i]);
 		}
 		putchar('\n');
 	}
@@ -71,15 +75,19 @@ void putbuf(void) {
 
 uint8_t onCPURead(uint16_t address) {
 	uint8_t retval = 0;
-	if (address < 0x6000) {
-		retval = RAM[address];
+	if (address < 0x2000) {
+		retval = RAM0[address];
+	} else if (address < 0x4000) {
+		retval = RAMX[address + RAMBank * 0x2000];
 	} else if (address < 0x8000) {
 		switch (address) {
 			case 0x6000: retval = getchar(); break;
 			default: retval = 0;
 		}
+	} else if (address < 0xC000) {
+		retval = ROMX[address - 0x8000 + ROMBank * 0x4000];
 	} else {
-		retval = ROM[address - 0x8000];
+		retval = ROM0[address - 0xC000];
 	}
 	// printf("cpu reading from address %04X = %02X\n", address, retval);
 	return retval;
@@ -87,16 +95,16 @@ uint8_t onCPURead(uint16_t address) {
 
 void onCPUWrite(uint16_t address, uint8_t data) {
 	// printf("cpu writing to address %04X = %02X\n", address, data);
-	if (address < 0x6000) {
-		RAM[address] = data;
+	if (address < 0x2000) {
+		RAM0[address] = data;
+	} else if (address < 0x4000) {
+		RAMX[address + RAMBank * 0x4000] = data;
 	} else if (address < 0x8000) {
-		switch (address) {
-			case 0x6000: putchar(data); break;
-			default:
-		}
-
+		if (address % 2 == 0) putchar(data);
+		if (address % 2 == 1) RAMBank = data;
 		return;
 	} else {
+		ROMBank = data;
 		return;
 	}
 }
@@ -124,7 +132,7 @@ int main(int argc, char** argv) {
 	RAM[0x800B] = -2;
 	*/
 
-	if (argc > 1) dumpFileIntoMem(argv[1], 0x0000, ROM);
+	if (argc > 1) dumpFileIntoMem(argv[1], 0x0000, ROM0);
 
 	CPU cpu;
 	CPUInit(&cpu, onCPURead, onCPUWrite);
@@ -151,6 +159,8 @@ int main(int argc, char** argv) {
 			printf("\n");
 			printf("first 256 bytes of common RAM: \n");
 			putbuf();
+			printf("RAMBank: %02X\n", RAMBank);
+			printf("ROMBank: %02X\n", ROMBank);
 			break;
 		}
 	}
